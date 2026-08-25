@@ -226,7 +226,7 @@
 /* ------------------------------------------------------------------ */
 
 .modal-overlay {
-    display: none;
+    display: flex;
     position: fixed;
     inset: 0;
     background: rgba(15, 15, 15, 0.65);
@@ -236,7 +236,7 @@
     z-index: 1000;
 }
 
-.modal-overlay.is-open { display: flex; }
+.modal-overlay[hidden] { display: none; }
 
 .modal-box {
     position: relative;

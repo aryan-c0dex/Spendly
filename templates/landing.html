@@ -25,7 +25,7 @@
         </p>
         <div class="hero-actions">
             <a href="{{ url_for('register') }}" class="hero-btn-primary">Create free account</a>
-            <a href="#" class="hero-btn-secondary" id="how-it-works-trigger">See how it works</a>
+            <a href="#" class="hero-btn-secondary" id="howItWorksBtn">See how it works</a>
         </div>
     </div>
     <div class="hero-visual">
@@ -76,12 +76,12 @@
     </div>
 </section>
 
-<div class="modal-overlay" id="video-modal-overlay">
+<div class="modal-overlay" id="videoModal" hidden>
     <div class="modal-box" id="video-modal-box">
-        <button type="button" class="modal-close" id="video-modal-close" aria-label="Close video">&times;</button>
+        <button type="button" class="modal-close" id="video-modal-close" data-close aria-label="Close video">&times;</button>
         <div class="modal-video-frame">
-            <iframe id="video-modal-iframe" src="" title="How Spendly works"
-                allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+            <iframe id="videoFrame" src="" title="How Spendly works"
+                allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
         </div>
     </div>
 </div>
@@ -119,38 +119,37 @@
 {% block scripts %}
 <script>
 (function () {
-    var trigger = document.getElementById('how-it-works-trigger');
-    var overlay = document.getElementById('video-modal-overlay');
-    var closeBtn = document.getElementById('video-modal-close');
-    var iframe = document.getElementById('video-modal-iframe');
-    var VIDEO_SRC = 'https://www.youtube-nocookie.com/embed/oHg5SJYRHA0?autoplay=1&rel=0';
+    var VIDEO_URL = "https://www.youtube.com/embed/dQw4w9WgXcQ";
 
-    function openModal(e) {
-        e.preventDefault();
-        iframe.src = VIDEO_SRC;
-        overlay.classList.add('is-open');
-        document.body.style.overflow = 'hidden';
+    var modal   = document.getElementById("videoModal");
+    var frame   = document.getElementById("videoFrame");
+    var trigger = document.getElementById("howItWorksBtn");
+
+    if (!modal || !frame || !trigger) return;
+
+    function openModal() {
+        frame.src = VIDEO_URL + "?autoplay=1&rel=0";
+        modal.hidden = false;
+        document.body.style.overflow = "hidden";
     }
 
     function closeModal() {
-        overlay.classList.remove('is-open');
-        iframe.src = '';
-        document.body.style.overflow = '';
+        modal.hidden = true;
+        // Clearing src tears the player down, so audio stops immediately
+        frame.src = "";
+        document.body.style.overflow = "";
     }
 
-    trigger.addEventListener('click', openModal);
-    closeBtn.addEventListener('click', closeModal);
+    trigger.addEventListener("click", openModal);
 
-    overlay.addEventListener('click', function (e) {
-        if (e.target === overlay) {
-            closeModal();
-        }
+    // Close button carries data-close; backdrop click is target === modal itself
+    // (so clicks inside .modal-box, e.g. on the video, don't bubble into a close)
+    modal.addEventListener("click", function (e) {
+        if (e.target === modal || e.target.closest("[data-close]")) closeModal();
     });
 
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && overlay.classList.contains('is-open')) {
-            closeModal();
-        }
+    document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && !modal.hidden) closeModal();
     });
 })();
 </script>
