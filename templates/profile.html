@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Profile — Spendly{% endblock %}
+
+{% block content %}
+
+<section class="profile-section">
+    <div class="profile-container">
+
+        <div class="profile-header">
+            <div class="profile-avatar">{{ user.initials }}</div>
+            <div>
+                <h1 class="profile-name">{{ user.name }}</h1>
+                <p class="profile-email">{{ user.email }}</p>
+                <p class="profile-meta">Member since {{ user.member_since }}</p>
+            </div>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-card">
+                <span class="stat-label">Total spent</span>
+                <span class="stat-value">₹{{ "{:,}".format(stats.total_spent) }}</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Transactions</span>
+                <span class="stat-value">{{ stats.transaction_count }}</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Top category</span>
+                <span class="stat-value">{{ stats.top_category }}</span>
+            </div>
+        </div>
+
+        <div class="transaction-card">
+            <table class="transaction-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Category</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in transactions %}
+                    <tr>
+                        <td>{{ t.date }}</td>
+                        <td>{{ t.description }}</td>
+                        <td>
+                            <span class="category-badge{{ ' category-badge-alt' if loop.index0 is odd }}">{{ t.category }}</span>
+                        </td>
+                        <td>₹{{ "{:,}".format(t.amount) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="breakdown-card">
+            {% for b in breakdown %}
+            <div class="breakdown-row">
+                <span class="breakdown-label">{{ b.category }}</span>
+                <div class="breakdown-track">
+                    <div class="breakdown-bar{{ ' breakdown-bar-alt' if loop.index0 is odd }}" style="width: {{ b.percent }}%"></div>
+                </div>
+                <span class="breakdown-amount">₹{{ "{:,}".format(b.amount) }}</span>
+            </div>
+            {% endfor %}
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}
