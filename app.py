@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -75,7 +77,7 @@ def login():
 
         session["user_id"] = user["id"]
         flash(f"Welcome back, {user['name']}!")
-        return redirect(url_for("landing"))
+        return redirect(url_for("profile"))
 
     return render_template("login.html")
 
@@ -102,7 +104,52 @@ def logout():
 
 @app.route("/profile")
 def profile():
-    return "Profile page — coming in Step 4"
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    try:
+        row = conn.execute(
+            "SELECT name, email, created_at FROM users WHERE id = ?",
+            (session["user_id"],),
+        ).fetchone()
+    finally:
+        conn.close()
+
+    name = row["name"]
+    initials = "".join(part[0] for part in name.split()[:2]).upper()
+    created_at = datetime.strptime(row["created_at"], "%Y-%m-%d %H:%M:%S")
+
+    user = {
+        "name": name,
+        "email": row["email"],
+        "initials": initials,
+        "member_since": created_at.strftime("%B %Y"),
+    }
+    stats = {
+        "total_spent": 18240,
+        "transaction_count": 34,
+        "top_category": "Food",
+    }
+    transactions = [
+        {"date": "22 Aug 2026", "description": "Restaurant dinner", "category": "Food", "amount": 850},
+        {"date": "18 Aug 2026", "description": "New shoes", "category": "Shopping", "amount": 3200},
+        {"date": "14 Aug 2026", "description": "Movie night", "category": "Entertainment", "amount": 600},
+        {"date": "10 Aug 2026", "description": "Electricity bill", "category": "Bills", "amount": 1899},
+        {"date": "05 Aug 2026", "description": "Bus pass top-up", "category": "Transport", "amount": 400},
+    ]
+    breakdown = [
+        {"category": "Food", "amount": 6200, "percent": 78},
+        {"category": "Shopping", "amount": 4400, "percent": 55},
+        {"category": "Bills", "amount": 3399, "percent": 42},
+        {"category": "Transport", "amount": 2100, "percent": 26},
+    ]
+
+    return render_template(
+        "profile.html",
+        user=user, stats=stats,
+        transactions=transactions, breakdown=breakdown,
+    )
 
 
 @app.route("/expenses/add")
