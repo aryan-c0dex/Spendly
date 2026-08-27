@@ -1,3 +1,5 @@
+from datetime import date, datetime, timedelta
+
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -11,6 +13,73 @@ from database.queries import (
 
 app = Flask(__name__)
 app.secret_key = "dev"
+
+
+# ------------------------------------------------------------------ #
+# Date filter helpers                                                 #
+# ------------------------------------------------------------------ #
+
+def _parse_date(value):
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date().isoformat()
+    except ValueError:
+        return None
+
+
+def _add_months(year, month, delta):
+    total = (year * 12 + (month - 1)) + delta
+    return total // 12, total % 12 + 1
+
+
+def _month_bounds(year, month):
+    start = date(year, month, 1)
+    ny, nm = _add_months(year, month, 1)
+    end = date(ny, nm, 1) - timedelta(days=1)
+    return start, end
+
+
+def _preset_url(start=None, end=None):
+    kwargs = {}
+    if start:
+        kwargs["start"] = start.isoformat()
+    if end:
+        kwargs["end"] = end.isoformat()
+    return url_for("profile", **kwargs)
+
+
+def _build_presets():
+    today = date.today()
+    this_start, this_end = _month_bounds(today.year, today.month)
+    last_y, last_m = _add_months(today.year, today.month, -1)
+    last_start, last_end = _month_bounds(last_y, last_m)
+    l3_y, l3_m = _add_months(today.year, today.month, -2)
+    l3_start, _ = _month_bounds(l3_y, l3_m)
+    year_start, year_end = date(today.year, 1, 1), date(today.year, 12, 31)
+
+    return [
+        {"label": "This Month", "url": _preset_url(this_start, this_end)},
+        {"label": "Last Month", "url": _preset_url(last_start, last_end)},
+        {"label": "Last 3 Months", "url": _preset_url(l3_start, this_end)},
+        {"label": "This Year", "url": _preset_url(year_start, year_end)},
+        {"label": "All Time", "url": _preset_url()},
+    ]
+
+
+def _format_label_date(value):
+    parsed = datetime.strptime(value, "%Y-%m-%d")
+    return f"{parsed.day} {parsed:%b %Y}"
+
+
+def _build_filter_label(start, end):
+    if start and end:
+        return f"Showing: {_format_label_date(start)} – {_format_label_date(end)}"
+    if start:
+        return f"Showing: from {_format_label_date(start)}"
+    if end:
+        return f"Showing: through {_format_label_date(end)}"
+    return None
 
 
 # ------------------------------------------------------------------ #
@@ -122,17 +191,23 @@ def profile():
         "initials": initials,
         "member_since": user_row["member_since"],
     }
-    stats = get_summary_stats(user_id)
-    transactions = get_recent_transactions(user_id)
+    start = _parse_date(request.args.get("start"))
+    end = _parse_date(request.args.get("end"))
+
+    stats = get_summary_stats(user_id, start_date=start, end_date=end)
+    transactions = get_recent_transactions(user_id, start_date=start, end_date=end)
     breakdown = [
         {"category": row["name"], "amount": row["amount"], "percent": row["pct"]}
-        for row in get_category_breakdown(user_id)
+        for row in get_category_breakdown(user_id, start_date=start, end_date=end)
     ]
 
     return render_template(
         "profile.html",
         user=user, stats=stats,
         transactions=transactions, breakdown=breakdown,
+        start=start, end=end,
+        filter_label=_build_filter_label(start, end),
+        presets=_build_presets(),
     )
 
 

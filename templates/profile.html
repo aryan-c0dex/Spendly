@@ -16,6 +16,30 @@
             </div>
         </div>
 
+        <div class="filter-bar">
+            <form method="get" class="filter-form">
+                <div class="form-group filter-field">
+                    <label for="start">From</label>
+                    <input type="date" id="start" name="start" class="form-input" value="{{ start or '' }}">
+                </div>
+                <div class="form-group filter-field">
+                    <label for="end">To</label>
+                    <input type="date" id="end" name="end" class="form-input" value="{{ end or '' }}">
+                </div>
+                <button type="submit" class="btn-primary filter-submit">Apply</button>
+            </form>
+
+            <div class="filter-presets">
+                {% for preset in presets %}
+                <a href="{{ preset.url }}" class="btn-ghost">{{ preset.label }}</a>
+                {% endfor %}
+            </div>
+
+            {% if filter_label %}
+            <p class="filter-active">{{ filter_label }} &middot; <a href="{{ url_for('profile') }}">Clear filter</a></p>
+            {% endif %}
+        </div>
+
         <div class="stats-row">
             <div class="stat-card">
                 <span class="stat-label">Total spent</span>
