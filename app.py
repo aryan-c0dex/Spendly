@@ -1,9 +1,13 @@
-from datetime import datetime
-
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from database.db import get_db, init_db, seed_db
+from database.queries import (
+    get_category_breakdown,
+    get_recent_transactions,
+    get_summary_stats,
+    get_user_by_id,
+)
 
 app = Flask(__name__)
 app.secret_key = "dev"
@@ -107,42 +111,22 @@ def profile():
     if not session.get("user_id"):
         return redirect(url_for("login"))
 
-    conn = get_db()
-    try:
-        row = conn.execute(
-            "SELECT name, email, created_at FROM users WHERE id = ?",
-            (session["user_id"],),
-        ).fetchone()
-    finally:
-        conn.close()
-
-    name = row["name"]
+    user_id = session["user_id"]
+    user_row = get_user_by_id(user_id)
+    name = user_row["name"]
     initials = "".join(part[0] for part in name.split()[:2]).upper()
-    created_at = datetime.strptime(row["created_at"], "%Y-%m-%d %H:%M:%S")
 
     user = {
         "name": name,
-        "email": row["email"],
+        "email": user_row["email"],
         "initials": initials,
-        "member_since": created_at.strftime("%B %Y"),
+        "member_since": user_row["member_since"],
     }
-    stats = {
-        "total_spent": 18240,
-        "transaction_count": 34,
-        "top_category": "Food",
-    }
-    transactions = [
-        {"date": "22 Aug 2026", "description": "Restaurant dinner", "category": "Food", "amount": 850},
-        {"date": "18 Aug 2026", "description": "New shoes", "category": "Shopping", "amount": 3200},
-        {"date": "14 Aug 2026", "description": "Movie night", "category": "Entertainment", "amount": 600},
-        {"date": "10 Aug 2026", "description": "Electricity bill", "category": "Bills", "amount": 1899},
-        {"date": "05 Aug 2026", "description": "Bus pass top-up", "category": "Transport", "amount": 400},
-    ]
+    stats = get_summary_stats(user_id)
+    transactions = get_recent_transactions(user_id)
     breakdown = [
-        {"category": "Food", "amount": 6200, "percent": 78},
-        {"category": "Shopping", "amount": 4400, "percent": 55},
-        {"category": "Bills", "amount": 3399, "percent": 42},
-        {"category": "Transport", "amount": 2100, "percent": 26},
+        {"category": row["name"], "amount": row["amount"], "percent": row["pct"]}
+        for row in get_category_breakdown(user_id)
     ]
 
     return render_template(
